@@ -1,23 +1,74 @@
-#pragma once
+#include "fila.h"
+#include <cstddef>
 
-// Um "no" (node) e a menor unidade da pilha.
-// Pensa nele como um post-it que guarda uma coordenada.
-struct NoPilha
+Fila *criarFila()
 {
-    int x, y;         // coordenadas salvas
-    NoPilha *proximo; // aponta pro post-it abaixo dele na pilha
-};
+    Fila *f = new Fila();
+    f->inicio = nullptr;
+    f->fim = nullptr;
+    f->tamanho = 0;
+    return f;
+}
 
-// A pilha em si: so precisa saber onde e o topo.
-struct Pilha
+void enfileirar(Fila *f, int valor)
 {
-    NoPilha *topo; // ponteiro pro no do topo (null se vazia)
-    int tamanho;   // quantos nos existem agora
-};
+    NoFila *novo = new NoFila();
+    novo->valor = valor;
+    novo->proximo = nullptr;
 
-Pilha *criarPilha();
-void empilhar(Pilha *p, int x, int y);
-bool desempilhar(Pilha *p, int &x, int &y); // & = devolve as coords pra fora
-bool pilhaVazia(Pilha *p);
-int tamanhoPilha(Pilha *p);
-void destruirPilha(Pilha *p);
+    if (f->fim == nullptr)
+    {
+        f->inicio = novo;
+        f->fim = novo;
+    }
+    else
+    {
+        f->fim->proximo = novo;
+        f->fim = novo;
+    }
+    f->tamanho++;
+}
+
+bool desenfileirar(Fila *f)
+{
+    if (filaVazia(f))
+        return false;
+
+    NoFila *removido = f->inicio;
+    f->inicio = removido->proximo;
+
+    if (f->inicio == nullptr)
+        f->fim = nullptr;
+
+    delete removido;
+    f->tamanho--;
+    return true;
+}
+
+bool filaVazia(Fila *f)
+{
+    return f->inicio == nullptr;
+}
+
+void ativarCooldown(Fila *f, int passos)
+{
+    for (int i = 0; i < passos; i++)
+        enfileirar(f, 1);
+}
+
+void processarPasso(Fila *f)
+{
+    desenfileirar(f);
+}
+
+bool podePular(Fila *f)
+{
+    return filaVazia(f);
+}
+
+void destruirFila(Fila *f)
+{
+    while (!filaVazia(f))
+        desenfileirar(f);
+    delete f;
+}
