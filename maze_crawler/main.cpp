@@ -1,10 +1,29 @@
 #include <cstdio>
 #include <conio.h>
 #include "mapa.h"
+#include <windows.h>
 #include "jogador.h"
+
+void configurarConsole()
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    // Tamanho da janela (colunas x linhas)
+    SMALL_RECT janela = {0, 0, 79, 34};
+    SetConsoleWindowInfo(hOut, TRUE, &janela);
+
+    // Buffer do mesmo tamanho da janela — sem scroll
+    COORD tamanhoBuffer = {80, 35};
+    SetConsoleScreenBufferSize(hOut, tamanhoBuffer);
+
+    // Esconde o cursor
+    CONSOLE_CURSOR_INFO cursor = {1, FALSE};
+    SetConsoleCursorInfo(hOut, &cursor);
+}
 
 int main()
 {
+    configurarConsole();
     inicializarMapa();
 
     Jogador *jogador = criarJogador(1, 1);
@@ -55,7 +74,7 @@ int main()
         case 'f':
         case 'F':
             pularParede(jogador);
-            break; // pulo na ultima direcao
+            break;
         case 'q':
         case 'Q':
             rodando = false;

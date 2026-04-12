@@ -2,6 +2,8 @@
 #include "pilha.h"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <windows.h>
 
 char mapa[LINHAS][COLUNAS] = {
     "##############",
@@ -51,75 +53,106 @@ void apagarRastro(int x, int y)
         mapa[y][x] = '.';
 }
 
+// Move o cursor pro (0,0) sem apagar a tela
+static void moverCursorInicio()
+{
+    COORD pos = {0, 0};
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
+}
+
 void desenharMapa(int playerX, int playerY, int raioVisao,
                   int passos, bool cooldownAtivo, bool podeDesfazer,
                   Pilha *historico, int ultimoDx, int ultimoDy)
 {
 
-    system("cls");
+    // Buffer que vai acumular o frame inteiro antes de imprimir
+    // 8192 bytes e suficiente para todo o conteudo da tela
+    static char buf[8192];
+    static bool primeiraVez = true;
 
-    printf("--- MAZE CRAWLER - Disciplina: Estrutura de Dados ---\n");
-    printf("[ STATUS DO JOGO ]\n");
-    printf("  Jogador (@): (%d, %d)\n", playerX, playerY);
-    printf("  Passos Dados: %d\n", passos);
-    printf("  Nos na Pilha: %d\n", tamanhoPilha(historico));
-    printf("  Pulo [F]: %s\n\n", cooldownAtivo ? "Cooldown..." : "Disponivel!");
+    if (primeiraVez)
+    {
+        system("cls");
+        primeiraVez = false;
+    }
 
-    printf("[ LABIRINTO (Matriz %dx%d) ]      ", LINHAS, COLUNAS);
-    printf("[ PILHA DE MOVIMENTOS (DINAMICA) ]\n");
+    // Zera o buffer e começa a montar o frame
+    int pos = 0;
+    buf[0] = '\0';
+
+// Macro auxiliar: adiciona texto ao buffer via sprintf acumulado
+#define W(fmt, ...) pos += sprintf(buf + pos, fmt, ##__VA_ARGS__)
+
+    W("--- MAZE CRAWLER - Disciplina: Estrutura de Dados ---\n");
+    W("[ STATUS DO JOGO ]                                   \n");
+    W("  Jogador (@): (%d, %d)                              \n", playerX, playerY);
+    W("  Passos Dados: %-5d                                 \n", passos);
+    W("  Nos na Pilha: %-3d                                 \n", tamanhoPilha(historico));
+    W("  Pulo [F]: %-40s\n\n", cooldownAtivo ? "Cooldown..." : "Disponivel!");
+
+    W("[ LABIRINTO (Matriz %dx%d) ]      ", LINHAS, COLUNAS);
+    W("[ PILHA DE MOVIMENTOS (DINAMICA) ]\n");
 
     NoPilha *cursor = historico->topo;
 
     for (int i = 0; i < LINHAS; i++)
     {
-        printf("|");
+
+        W("|");
         for (int j = 0; j < COLUNAS - 1; j++)
         {
             int dist = abs(i - playerY) + abs(j - playerX);
             bool visiv = (dist <= raioVisao);
 
             if (i == playerY && j == playerX)
-            {
-                printf("@");
-            }
+                W("@");
             else if (!visiv)
-            {
-                printf(" ");
-            }
+                W(" ");
             else
-            {
-                printf("%c", mapa[i][j]);
-            }
+                W("%c", mapa[i][j]);
         }
-        printf("|");
-        printf("   ");
+        W("|   ");
 
         if (i == 0)
         {
-            printf("TOP (No* topo) ->");
+            W("TOP (No* topo) ->              ");
         }
         else if (i == 1)
         {
             if (cursor != nullptr)
-                printf("  (%2d,%2d)  <-- Recem empilhado", cursor->x, cursor->y);
+                W("  (%2d,%2d)  <-- Recem empilhado", cursor->x, cursor->y);
             else
-                printf("  [pilha vazia]");
+                W("  [pilha vazia]               ");
         }
         else if (cursor != nullptr)
         {
             cursor = cursor->proximo;
             if (cursor != nullptr)
-                printf("  (%2d,%2d)", cursor->x, cursor->y);
+                W("  (%2d,%2d)                    ", cursor->x, cursor->y);
+            else
+                W("                              ");
+        }
+        else
+        {
+            W("                              ");
         }
 
-        printf("\n");
+        W("\n");
     }
 
-    printf("\n");
-    printf("[ CONTROLES: W/A/S/D Mover | U Desfazer | F Pular parede | Q Sair ]\n");
-    printf("  Undo: %s", podeDesfazer ? "[disponivel]" : "[pilha vazia]");
-    printf("  |  Ultima direcao gravada: (%d, %d)\n", ultimoDx, ultimoDy);
-    printf("> ");
+    W("\n");
+    W("[ CONTROLES: W/A/S/D Mover | U Desfazer | F Pular parede | Q Sair ]\n");
+    W("  Undo: %-15s | Ultima direcao: (%d, %d)          \n",
+      podeDesfazer ? "[disponivel]" : "[pilha vazia]",
+      ultimoDx, ultimoDy);
+    W("> ");
+
+#undef W
+
+    // Imprime o frame inteiro de uma vez so — sem flash
+    moverCursorInicio();
+    fputs(buf, stdout);
+    fflush(stdout);
 }
 
 void inicializarMapa() {}
